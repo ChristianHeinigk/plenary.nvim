@@ -1,8 +1,9 @@
 local Path = require "plenary.path"
 local os_sep = Path.path.sep
 local F = require "plenary.functional"
+local is_windows = require"plenary.system".is_windows
 
-local uv = vim.loop
+local uv = vim.uv or vim.loop
 
 local m = {}
 
@@ -330,7 +331,7 @@ local get_username = (function()
     return id
   end
 
-  if jit and os_sep ~= "\\" then
+  if jit and not is_windows() then
     local ffi = require "ffi"
     ffi.cdef [[
       typedef unsigned int __uid_t;
@@ -389,7 +390,7 @@ local get_groupname = (function()
     return id
   end
 
-  if jit and os_sep ~= "\\" then
+  if jit and not is_windows() then
     local ffi = require "ffi"
     ffi.cdef [[
       typedef unsigned int __gid_t;
@@ -463,8 +464,8 @@ local gen_ls = function(data, path, opts)
 
   local results, sections = {}, {}
 
-  local users_tbl = os_sep ~= "\\" and {} or nil
-  local groups_tbl = os_sep ~= "\\" and {} or nil
+  local users_tbl = not is_windows() and {} or nil
+  local groups_tbl = not is_windows() and {} or nil
 
   local stats, permissions_cache = {}, {}
   for _, v in ipairs(data) do

@@ -4,7 +4,10 @@
 --- Reference: https://docs.python.org/3/library/pathlib.html
 
 local bit = require "plenary.bit"
-local uv = vim.loop
+local uv = vim.uv or vim.loop
+local fs = vim.fs
+local is_windows = require"plenary.system".is_windows
+local uses_shellslash = require"plenary.system".uses_shellslash
 
 local F = require "plenary.functional"
 
@@ -16,30 +19,26 @@ local S_IF = {
 }
 
 local path = {}
-path.home = vim.loop.os_homedir()
+path.home = fs.normalize(uv.os_homedir())
 
 path.sep = (function()
-  if jit then
-    local os = string.lower(jit.os)
-    if os ~= "windows" then
-      return "/"
-    else
-      return "\\"
-    end
+  if is_windows() and not uses_shellslash() then
+    return "\\"
   else
-    return package.config:sub(1, 1)
+    return "/"
   end
 end)()
 
 path.root = (function()
-  if path.sep == "/" then
-    return function()
-      return "/"
+  if is_windows() then
+    return function(base)
+      local base = base or fs.normalize(uv.cwd())
+      local drive = base:sub(1, 1)
+      return drive .. ":" .. path.sep
     end
   else
-    return function(base)
-      base = base or vim.loop.cwd()
-      return base:sub(1, 1) .. ":\\"
+    return function()
+      return "/"
     end
   end
 end)()
@@ -55,8 +54,8 @@ local concat_paths = function(...)
 end
 
 local function is_root(pathname)
-  if path.sep == "\\" then
-    return string.match(pathname, "^[A-Z]:\\?$")
+  if is_windows() then
+    return string.match(fs.normalize(pathname), "^[A-Z]:" .. path.sep .. "?$")
   end
   return pathname == "/"
 end
@@ -65,7 +64,7 @@ local _split_by_separator = (function()
   local formatted = string.format("([^%s]+)", path.sep)
   return function(filepath)
     local t = {}
-    for str in string.gmatch(filepath, formatted) do
+    for str in string.gmatch(fs.normalize(filepath), formatted) do
       table.insert(t, str)
     end
     return t
@@ -77,8 +76,8 @@ local is_uri = function(filename)
 end
 
 local is_absolute = function(filename, sep)
-  if sep == "\\" then
-    return string.match(filename, "^[%a]:\\.*$") ~= nil
+  if is_windows() then
+    return string.match(filename, "^[%a]:" .. sep .. ".*$") ~= nil
   end
   return string.sub(filename, 1, 1) == sep
 end
@@ -103,7 +102,7 @@ local function _normalize_path(filename, cwd)
     local split_without_disk_name = function(filename_local)
       local parts = _split_by_separator(filename_local)
       -- Remove disk name part on Windows
-      if path.sep == "\\" and is_abs then
+      if is_windows() and is_abs then
         table.remove(parts, 1)
       end
       return parts
@@ -181,13 +180,13 @@ Path.__index = function(t, k)
   end
 
   if k == "_cwd" then
-    local cwd = uv.fs_realpath "."
+    local cwd = fs.normalize(uv.cwd())
     t._cwd = cwd
     return cwd
   end
 
   if k == "_absolute" then
-    local absolute = uv.fs_realpath(t.filename)
+    local absolute = fs.normalize(uv.fs_realpath(t.filename))
     t._absolute = absolute
     return absolute
   end
@@ -319,9 +318,9 @@ function Path:expand()
   -- TODO support windows
   local expanded
   if string.find(self.filename, "~") then
-    expanded = string.gsub(self.filename, "^~", vim.loop.os_homedir())
+    expanded = string.gsub(self.filename, "^~", uv.os_homedir())
   elseif string.find(self.filename, "^%.") then
-    expanded = vim.loop.fs_realpath(self.filename)
+    expanded = uv.fs_realpath(self.filename)
     if expanded == nil then
       expanded = vim.fn.fnamemodify(self.filename, ":p")
     end
@@ -753,19 +752,19 @@ function Path:_read()
 end
 
 function Path:_read_async(callback)
-  vim.loop.fs_open(self.filename, "r", 438, function(err_open, fd)
+  uv.fs_open(self.filename, "r", 438, function(err_open, fd)
     if err_open then
       print("We tried to open this file but couldn't. We failed with following error message: " .. err_open)
       return
     end
-    vim.loop.fs_fstat(fd, function(err_fstat, stat)
+    uv.fs_fstat(fd, function(err_fstat, stat)
       assert(not err_fstat, err_fstat)
       if stat.type ~= "file" then
         return callback ""
       end
-      vim.loop.fs_read(fd, stat.size, 0, function(err_read, data)
+      uv.fs_read(fd, stat.size, 0, function(err_read, data)
         assert(not err_read, err_read)
-        vim.loop.fs_close(fd, function(err_close)
+        uv.fs_close(fd, function(err_close)
           assert(not err_close, err_close)
           return callback(data)
         end)
