@@ -4,6 +4,7 @@ local F = require "plenary.functional"
 local is_windows = require"plenary.system".is_windows
 
 local uv = vim.uv or vim.loop
+local fs = vim.fs
 
 local m = {}
 
@@ -450,7 +451,7 @@ local gen_ls = function(data, path, opts)
 
   local check_link = function(per, file)
     if per:sub(1, 1) == "l" then
-      local resolved = uv.fs_realpath(path .. os_sep .. file)
+      local resolved = fs.normalize(uv.fs_realpath(path .. os_sep .. file))
       if not resolved then
         return file
       end

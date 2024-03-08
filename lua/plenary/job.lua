@@ -1,4 +1,5 @@
 local vim = vim
+local fs = vim.fs
 local uv = vim.loop
 
 local F = require "plenary.functional"
@@ -63,7 +64,7 @@ end
 
 local function expand(path)
   if vim.in_fast_event() then
-    return assert(uv.fs_realpath(path), string.format("Path must be valid: %s", path))
+    return assert(fs.normalize(uv.fs_realpath(path)), string.format("Path must be valid: %s", path))
   else
     -- TODO: Probably want to check that this is valid here... otherwise that's weird.
     return vim.fn.expand(vim.fn.escape(path, "[]$"), true)

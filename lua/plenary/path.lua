@@ -264,7 +264,7 @@ function Path:new(...)
   end
 
   local obj = {
-    filename = path_string,
+    filename = fs.normalize(path_string),
 
     _sep = sep,
   }
@@ -320,7 +320,7 @@ function Path:expand()
   if string.find(self.filename, "~") then
     expanded = string.gsub(self.filename, "^~", uv.os_homedir())
   elseif string.find(self.filename, "^%.") then
-    expanded = uv.fs_realpath(self.filename)
+    expanded = fs.normalize(uv.fs_realpath(self.filename))
     if expanded == nil then
       expanded = vim.fn.fnamemodify(self.filename, ":p")
     end
@@ -531,7 +531,7 @@ function Path:rename(opts)
   -- handles `.`, `..`, `./`, and `../`
   if opts.new_name:match "^%.%.?/?\\?.+" then
     opts.new_name = {
-      uv.fs_realpath(opts.new_name:sub(1, 3)),
+      fs.normalize(uv.fs_realpath(opts.new_name:sub(1, 3))),
       opts.new_name:sub(4, #opts.new_name),
     }
   end
@@ -569,7 +569,7 @@ function Path:copy(opts)
   if not Path.is_path(dest) then
     if type(dest) == "string" and dest:match "^%.%.?/?\\?.+" then
       dest = {
-        uv.fs_realpath(dest:sub(1, 3)),
+        fs.normalize(uv.fs_realpath(dest:sub(1, 3))),
         dest:sub(4, #dest),
       }
     end

@@ -1,6 +1,7 @@
 local Path = require "plenary.path"
 local path = Path.path
 local is_windows = require"plenary.system".is_windows
+local uv = vim.uv or vim.loop
 local fs = vim.fs
 
 describe("Path", function()
@@ -100,7 +101,7 @@ describe("Path", function()
   describe(":make_relative", function()
     it("can take absolute paths and make them relative to the cwd", function()
       local p = Path:new { "lua", "plenary", "path.lua" }
-      local absolute = vim.loop.cwd() .. path.sep .. p.filename
+      local absolute = uv.cwd() .. path.sep .. p.filename
       local relative = Path:new(absolute):make_relative()
       assert.are.same(relative, p.filename)
     end)
@@ -116,7 +117,7 @@ describe("Path", function()
 
     it("can take double separator absolute paths and make them relative to the cwd", function()
       local p = Path:new { "lua", "plenary", "path.lua" }
-      local absolute = vim.loop.cwd() .. path.sep .. path.sep .. p.filename
+      local absolute = uv.cwd() .. path.sep .. path.sep .. p.filename
       local relative = Path:new(absolute):make_relative()
       assert.are.same(relative, p.filename)
     end)
@@ -421,7 +422,7 @@ describe("Path", function()
       assert(p:exists())
 
       assert(pcall(p.rename, p, { new_name = "../some_random_filename.lua" }))
-      assert.are.same(vim.loop.fs_realpath(Path:new("../some_random_filename.lua"):absolute()), p:absolute())
+      assert.are.same(fs.normalize(uv.fs_realpath(Path:new("../some_random_filename.lua"):absolute())), p:absolute())
 
       p:rm()
     end)
@@ -466,7 +467,7 @@ describe("Path", function()
       assert(pcall(p.exists, p))
 
       p:rm()
-      Path:new(vim.loop.fs_realpath "../some_random_filename.lua"):rm()
+      Path:new(fs.normalize(uv.fs_realpath "../some_random_filename.lua")):rm()
     end)
 
     it("cannot copy an existing file if override false", function()
@@ -592,7 +593,7 @@ describe("Path", function()
 
   describe("parents", function()
     it("should extract the ancestors of the path", function()
-      local p = Path:new(vim.loop.cwd())
+      local p = Path:new(uv.cwd())
       local parents = p:parents()
       assert(vim.tbl_islist(parents))
       for _, parent in pairs(parents) do
@@ -600,7 +601,7 @@ describe("Path", function()
       end
     end)
     it("should return itself if it corresponds to path.root", function()
-      local p = Path:new(Path.path.root(vim.loop.cwd()))
+      local p = Path:new(Path.path.root(uv.cwd()))
       assert.are.same(p:parent(), p)
     end)
   end)
