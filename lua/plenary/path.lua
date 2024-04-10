@@ -32,7 +32,7 @@ end)()
 path.root = (function()
   if is_windows() then
     return function(base)
-      local base = base or fs.normalize(uv.cwd())
+      local base = fs.normalize(base) or fs.normalize(uv.cwd())
       local drive = base:sub(1, 1)
       return drive .. ":" .. path.sep
     end
