@@ -19,7 +19,8 @@ local S_IF = {
 }
 
 local path = {}
-path.home = fs.normalize(uv.os_homedir())
+local os_homedir = uv.os_homedir()
+path.home = os_homedir and fs.normalize(os_homedir) or nil
 
 path.sep = (function()
   if is_windows() and not uses_shellslash() then
@@ -32,9 +33,10 @@ end)()
 path.root = (function()
   if is_windows() then
     return function(base)
-      local base = fs.normalize(base) or fs.normalize(uv.cwd())
-      local drive = base:sub(1, 1)
-      return drive .. ":" .. path.sep
+      local _base = base and base or uv.cwd()
+      _base = _base and fs.normalize(_base) or nil
+      local drive = _base and string.sub(base, 1, 1) or nil
+      return drive and drive .. ":" .. path.sep or nil
     end
   else
     return function()
@@ -180,13 +182,15 @@ Path.__index = function(t, k)
   end
 
   if k == "_cwd" then
-    local cwd = fs.normalize(uv.cwd())
+    local _cwd = uv.cwd()
+    local cwd = _cwd and fs.normalize(_cwd) or nil
     t._cwd = cwd
     return cwd
   end
 
   if k == "_absolute" then
-    local absolute = fs.normalize(uv.fs_realpath(t.filename))
+    local real_path = uv.fs_realpath(t.filename)
+    local absolute = real_path and fs.normalize(real_path) or nil
     t._absolute = absolute
     return absolute
   end
