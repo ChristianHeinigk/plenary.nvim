@@ -492,7 +492,7 @@ function Path:mkdir(opts)
       for _, dir in ipairs(dirs) do
         if dir ~= "" then
           local joined = concat_paths(processed, dir)
-          if processed == "" and self._sep == "\\" then
+          if processed == "" and is_windows() then
             joined = dir
           end
           local stat = uv.fs_stat(joined) or {}
