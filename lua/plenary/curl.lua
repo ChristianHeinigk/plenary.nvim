@@ -38,7 +38,8 @@ local fs = vim.fs
 local F = require "plenary.functional"
 local J = require "plenary.job"
 local P = require "plenary.path"
-local is_windows = require"plenary.system".is_windows
+local is_windows = require "plenary.system".is_windows
+local compat = require "plenary.compat"
 
 -- Utils ----------------------------------------------------
 -------------------------------------------------------------
@@ -57,7 +58,7 @@ util.url_encode = function(str)
 end
 
 util.kv_to_list = function(kv, prefix, sep)
-  return vim.tbl_flatten(F.kv_map(function(kvp)
+  return compat.flatten(F.kv_map(function(kvp)
     return { prefix, kvp[1] .. sep .. kvp[2] }
   end, kv))
 end
@@ -246,22 +247,32 @@ parse.request = function(opts)
     table.insert(result, { "-o", opts.output })
   end
   table.insert(result, parse.url(opts.url, opts.query))
-  return vim.tbl_flatten(result), opts
+  return compat.flatten(result), opts
 end
 
 -- Parse response ------------------------------------------
 ------------------------------------------------------------
 parse.response = function(lines, dump_path, code)
   local headers = P.readlines(dump_path)
-  local status = tonumber(string.match(headers[1], "([%w+]%d+)"))
-  local body = F.join(lines, "\n")
+  local status = nil
+  local processed_headers = {}
 
+  -- Process headers in a single pass
+  for _, line in ipairs(headers) do
+    local status_match = line:match "^HTTP/%S*%s+(%d+)"
+    if status_match then
+      status = tonumber(status_match)
+    elseif line ~= "" then
+      table.insert(processed_headers, line)
+    end
+  end
+
+  local body = F.join(lines, "\n")
   vim.loop.fs_unlink(dump_path)
-  table.remove(headers, 1)
 
   return {
-    status = status,
-    headers = headers,
+    status = status or 0,
+    headers = processed_headers,
     body = body,
     exit = code,
   }
@@ -324,9 +335,9 @@ end
 -- Main ----------------------------------------------------
 ------------------------------------------------------------
 return (function()
-  local spec = {}
   local partial = function(method)
     return function(url, opts)
+      local spec = {}
       opts = opts or {}
       if type(url) == "table" then
         opts = url

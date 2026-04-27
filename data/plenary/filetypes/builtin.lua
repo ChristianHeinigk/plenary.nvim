@@ -21,6 +21,7 @@ return {
   extension = {
     ['_coffee'] = 'coffee',
     ['astro'] = 'astro',
+    ['cairo'] = 'cairo',
     ['cts'] = 'typescript',
     ['cljd'] = 'clojure',
     ['coffee'] = 'coffee',
@@ -51,12 +52,15 @@ return {
     ['resi'] = 'rescript',
     ['rkt'] = 'racket',
     ['svelte'] = 'svelte',
+    ['swift'] = 'swift',
     ['tres'] = 'gdresource',
     ['tscn'] = 'gdresource',
     ['tsx'] = 'typescriptreact',
     ['smithy'] = [[smithy]],
     ['sol'] = 'solidity',
     ['dtsi'] = 'dts',
+    ['zig'] = 'zig',
+    ['zon'] = 'zig',
   },
   file_name = {
     ['cakefile'] = 'coffee',
