@@ -749,13 +749,12 @@ function Path:_read()
   self = check_self(self)
 
   local fd = assert(uv.fs_open(self:_fs_filename(), "r", 438)) -- for some reason test won't pass with absolute
-  local stat = assert(uv.fs_stat(fd), string.format("Could not stat file %s", self:_fs_filename()))
+  local stat = assert(uv.fs_fstat(fd))
   if stat.type ~= "file" then
     assert(uv.fs_close(fd))
     return ""
   end
-  local fstat = assert(uv.fs_fstat(fd))
-  local data = assert(uv.fs_read(fd, fstat.size, 0))
+  local data = assert(uv.fs_read(fd, stat.size, 0))
   assert(uv.fs_close(fd))
 
   return data
