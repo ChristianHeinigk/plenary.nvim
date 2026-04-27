@@ -279,7 +279,7 @@ function Path:new(...)
 end
 
 function Path:_fs_filename()
-  return self:absolute() or self.filename
+  return fs.normalize(self:absolute() or self.filename)
 end
 
 function Path:_stat()
