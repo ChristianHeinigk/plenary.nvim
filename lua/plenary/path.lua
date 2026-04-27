@@ -6,8 +6,8 @@
 local bit = require "plenary.bit"
 local uv = vim.uv or vim.loop
 local fs = vim.fs
-local is_windows = require"plenary.system".is_windows
-local uses_shellslash = require"plenary.system".uses_shellslash
+local is_windows = require "plenary.system".is_windows
+local uses_shellslash = require "plenary.system".uses_shellslash
 
 local F = require "plenary.functional"
 
@@ -422,7 +422,7 @@ local function shorten_len(filename, len, exclude)
     count = count + 1
   end
 
-  local l = #final_path_components -- so that we don't need to keep calculating length
+  local l = #final_path_components       -- so that we don't need to keep calculating length
   table.remove(final_path_components, l) -- remove final slash
 
   -- add back empty positions
@@ -690,6 +690,7 @@ end
 function Path:is_absolute()
   return is_absolute(self.filename, self._sep)
 end
+
 -- }}}
 
 function Path:_split()
@@ -748,8 +749,13 @@ function Path:_read()
   self = check_self(self)
 
   local fd = assert(uv.fs_open(self:_fs_filename(), "r", 438)) -- for some reason test won't pass with absolute
-  local stat = assert(uv.fs_fstat(fd))
-  local data = assert(uv.fs_read(fd, stat.size, 0))
+  local stat = assert(uv.fs_stat(fd))
+  if stat.type ~= "file" then
+    assert(uv.fs_close(fd))
+    return ""
+  end
+  local fstat = assert(uv.fs_fstat(fd))
+  local data = assert(uv.fs_read(fd, fstat.size, 0))
   assert(uv.fs_close(fd))
 
   return data
